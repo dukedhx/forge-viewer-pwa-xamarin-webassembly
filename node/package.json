@@ -1,0 +1,19 @@
+{
+  "name": "my-addon",
+  "title": "my-addon",
+  "id": "jid1-1FERGV45e4f4f@jetpack",
+  "description": "a basic add-on",
+  "author": "sb233",
+  "license": "MIT",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "config": "^3.0.1",
+    "forge-apis": "^0.4.4",
+    "koa": "^2.7.0",
+    "koa-router": "^7.4.0",
+    "koa-static": "^5.0.0"
+  }
+}

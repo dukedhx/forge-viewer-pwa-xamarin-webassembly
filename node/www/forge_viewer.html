@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Very Basic 3D Viewer</title>
+  <link rel="icon" href="/images/favicon.ico" type="image/x-icon" />
+  <!-- The Viewer JS & CSS-->
+  <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/6.*/style.min.css" type="text/css">
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+    <!--<img src='/images/forge-logo.png' style="height:auto;width:20%;position:absolute;left:10px;top:10px;z-index:233">-->
+    <div id="MyViewerDiv"></div>
+
+    <!-- Developer JS -->
+    <script type="module">
+        import config from '/api/forge/dictionary/config?type=js';
+
+        const myViewerDiv = document.getElementById('MyViewerDiv');
+        const options = {
+              env: 'AutodeskProduction',
+              getAccessToken: getToken,
+              refreshToken: getToken
+        }
+
+        navigator.serviceWorker.register('/forge_viewer_worker.js').then(registration => {
+            let script = document.createElement('script');
+            script.onload = () => {
+                const viewer = new Autodesk.Viewing.Private.GuiViewer3D(myViewerDiv);
+
+                Autodesk.Viewing.Initializer(options, () => {
+                    Autodesk.Viewing.Document.load('urn:' + btoa(config.FORGE_URN), doc => {
+
+                        const geometries = doc.getRoot().search({ 'type': 'geometry' });
+
+                        if (geometries.length === 0) {
+
+                          alert('Document contains no geometries.');
+
+                          return
+                        }
+
+                        const initGeom = geometries[0];
+
+                        const svfUrl = doc.getViewablePath(initGeom);
+
+                        const modelOptions = {
+
+                          sharedPropertyDbPath: doc.getPropertyDbPath()
+
+                        }
+
+                        viewer.start(svfUrl, modelOptions)
+
+                      }, viewerErrorCode => alert('Error Code: '+viewerErrorCode))
+
+                    });
+
+                    viewer.addEventListener(Autodesk.Viewing.GEOMETRY_LOADED_EVENT, () => {
+                        const channel = new MessageChannel();
+                        channel.port1.onmessage = (event) => console.log(event);
+
+                        navigator.serviceWorker.controller.postMessage({ operation: 'EXECUTE_CACHE' }, [channel.port2])
+                    })
+                }
+
+            script.src = "https://developer.api.autodesk.com/modelderivative/v2/viewers/6.*/viewer3D.min.js";
+
+            document.head.appendChild(script);
+
+        });
+
+
+        function getToken(onGetAccessToken) {
+          const xhr = new XMLHttpRequest();
+
+          xhr.open('GET', '/api/forge/token');
+
+          xhr.onreadystatechange =  () => {
+
+            if (xhr.status == 200 && xhr.readyState == 4) {
+              if (xhr.response)  onGetAccessToken(JSON.parse(xhr.response).access_token, 86400)
+            }
+
+            if (xhr.status != 200) alert(xhr.status)
+          }
+
+          xhr.send()
+        }
+    </script>
+</body>
+
+</html>
